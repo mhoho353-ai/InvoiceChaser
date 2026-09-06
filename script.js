@@ -1,539 +1,322 @@
-// ========================================
+// ================================
 // InvoiceChaser
-// Simple client-side invoice tracker
-// ========================================
+// ================================
 
-let invoices = [];
+// Load saved invoices from browser
+let invoices = JSON.parse(localStorage.getItem("invoicechaser_invoices")) || [];
 
+const form = document.getElementById("invoiceForm");
+const customerInput = document.getElementById("customer");
+const invoiceInput = document.getElementById("invoiceNumber");
+const amountInput = document.getElementById("amount");
+const dueDateInput = document.getElementById("dueDate");
 
-// ========================================
-// DOM Elements
-// ========================================
+const invoicesBody = document.getElementById("invoicesBody");
 
-const invoiceForm =
-    document.getElementById("invoiceForm");
+const totalInvoicesEl = document.getElementById("totalInvoices");
+const overdueInvoicesEl = document.getElementById("overdueInvoices");
+const overdueAmountEl = document.getElementById("overdueAmount");
 
-const customerInput =
-    document.getElementById("customer");
-
-const invoiceNumberInput =
-    document.getElementById("invoiceNumber");
-
-const amountInput =
-    document.getElementById("amount");
-
-const dueDateInput =
-    document.getElementById("dueDate");
-
-const invoiceTableBody =
-    document.getElementById("invoiceTableBody");
-
-const emptyState =
-    document.getElementById("emptyState");
-
-const invoiceTableContainer =
-    document.getElementById("invoiceTableContainer");
-
-const reminderSection =
-    document.getElementById("reminderSection");
-
-const reminderSubject =
-    document.getElementById("reminderSubject");
-
-const reminderMessage =
-    document.getElementById("reminderMessage");
-
-const copyButton =
-    document.getElementById("copyButton");
-
-const copyStatus =
-    document.getElementById("copyStatus");
-
-const totalInvoices =
-    document.getElementById("totalInvoices");
-
-const overdueInvoices =
-    document.getElementById("overdueInvoices");
-
-const overdueAmount =
-    document.getElementById("overdueAmount");
+const reminderSection = document.getElementById("reminderSection");
+const reminderCustomer = document.getElementById("reminderCustomer");
+const reminderSubject = document.getElementById("reminderSubject");
+const reminderMessage = document.getElementById("reminderMessage");
+const copyReminderBtn = document.getElementById("copyReminder");
 
 
-// ========================================
-// Set default date
-// ========================================
+// ================================
+// Save invoices
+// ================================
 
-const today = new Date();
-
-const yyyy =
-    today.getFullYear();
-
-const mm =
-    String(today.getMonth() + 1)
-        .padStart(2, "0");
-
-const dd =
-    String(today.getDate())
-        .padStart(2, "0");
-
-dueDateInput.value =
-    `${yyyy}-${mm}-${dd}`;
+function saveInvoices() {
+    localStorage.setItem(
+        "invoicechaser_invoices",
+        JSON.stringify(invoices)
+    );
+}
 
 
-// ========================================
-// Add Invoice
-// ========================================
-
-invoiceForm.addEventListener(
-    "submit",
-    function (event) {
-
-        event.preventDefault();
-
-        const customer =
-            customerInput.value.trim();
-
-        const invoiceNumber =
-            invoiceNumberInput.value.trim();
-
-        const amount =
-            Number(amountInput.value);
-
-        const dueDate =
-            dueDateInput.value;
-
-
-        if (!customer) {
-            alert("Please enter the customer name.");
-            return;
-        }
-
-        if (!invoiceNumber) {
-            alert("Please enter the invoice number.");
-            return;
-        }
-
-        if (!amount || amount <= 0) {
-            alert("Please enter a valid amount.");
-            return;
-        }
-
-        if (!dueDate) {
-            alert("Please select a due date.");
-            return;
-        }
-
-
-        const invoice = {
-
-            id:
-                Date.now(),
-
-            customer:
-                customer,
-
-            invoiceNumber:
-                invoiceNumber,
-
-            amount:
-                amount,
-
-            dueDate:
-                dueDate
-        };
-
-
-        invoices.push(invoice);
-
-        renderInvoices();
-
-        invoiceForm.reset();
-
-        dueDateInput.value =
-            `${yyyy}-${mm}-${dd}`;
-    }
-);
-
-
-// ========================================
+// ================================
 // Calculate invoice status
-// ========================================
+// ================================
 
 function getInvoiceStatus(dueDate) {
 
-    const today =
-        new Date();
-
+    const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const due =
-        new Date(dueDate);
-
+    const due = new Date(dueDate + "T00:00:00");
     due.setHours(0, 0, 0, 0);
 
-
     const difference =
-        today - due;
+        Math.floor((today - due) / (1000 * 60 * 60 * 24));
 
-    const days =
-        Math.round(
-            difference /
-            (1000 * 60 * 60 * 24)
-        );
-
-
-    if (days < 0) {
+    if (difference > 0) {
 
         return {
+            type: "overdue",
+            text: `Overdue ${difference} day${difference === 1 ? "" : "s"}`,
+            daysLate: difference
+        };
 
-            type: "green",
+    }
 
-            label:
-                `Due in ${Math.abs(days)} day${Math.abs(days) === 1 ? "" : "s"}`,
+    if (difference === 0) {
 
+        return {
+            type: "today",
+            text: "Due today",
             daysLate: 0
         };
+
     }
 
-
-    if (days === 0) {
-
-        return {
-
-            type: "yellow",
-
-            label:
-                "Due today",
-
-            daysLate: 0
-        };
-    }
-
-
-    if (days <= 30) {
-
-        return {
-
-            type: "red",
-
-            label:
-                `${days} day${days === 1 ? "" : "s"} overdue`,
-
-            daysLate: days
-        };
-    }
-
+    const daysUntilDue = Math.abs(difference);
 
     return {
-
-        type: "dark",
-
-        label:
-            `${days} days overdue`,
-
-        daysLate: days
+        type: "upcoming",
+        text: `Due in ${daysUntilDue} day${daysUntilDue === 1 ? "" : "s"}`,
+        daysLate: 0
     };
 }
 
 
-// ========================================
+// ================================
 // Render invoices
-// ========================================
+// ================================
 
 function renderInvoices() {
 
-    invoiceTableBody.innerHTML = "";
-
+    invoicesBody.innerHTML = "";
 
     if (invoices.length === 0) {
 
-        emptyState.classList.remove(
-            "hidden"
-        );
-
-        invoiceTableContainer.classList.add(
-            "hidden"
-        );
-
-        reminderSection.classList.add(
-            "hidden"
-        );
+        invoicesBody.innerHTML = `
+            <tr>
+                <td colspan="6" class="empty-state">
+                    No invoices yet.
+                </td>
+            </tr>
+        `;
 
         updateDashboard();
-
         return;
     }
 
+    invoices.forEach((invoice, index) => {
 
-    emptyState.classList.add(
-        "hidden"
-    );
+        const status = getInvoiceStatus(invoice.dueDate);
 
-    invoiceTableContainer.classList.remove(
-        "hidden"
-    );
+        const row = document.createElement("tr");
 
+        row.innerHTML = `
+            <td>${escapeHTML(invoice.customer)}</td>
 
-    invoices.forEach(
-        function (invoice) {
+            <td>${escapeHTML(invoice.invoiceNumber)}</td>
 
-            const status =
-                getInvoiceStatus(
-                    invoice.dueDate
-                );
+            <td>$${Number(invoice.amount).toFixed(2)}</td>
 
+            <td>${invoice.dueDate}</td>
 
-            const row =
-                document.createElement("tr");
+            <td>
+                <span class="status ${status.type}">
+                    ${status.text}
+                </span>
+            </td>
 
+            <td>
 
-            row.innerHTML = `
+                <button
+                    class="small-btn reminder-btn"
+                    onclick="showReminder(${index})"
+                >
+                    Reminder
+                </button>
 
-                <td>
-                    <strong>
-                        ${escapeHTML(invoice.customer)}
-                    </strong>
-                </td>
+                <button
+                    class="small-btn delete-btn"
+                    onclick="deleteInvoice(${index})"
+                >
+                    Delete
+                </button>
 
-                <td>
-                    ${escapeHTML(invoice.invoiceNumber)}
-                </td>
+            </td>
+        `;
 
-                <td>
-                    $${invoice.amount.toFixed(2)}
-                </td>
-
-                <td>
-                    ${formatDate(invoice.dueDate)}
-                </td>
-
-                <td>
-                    <span class="status status-${status.type}">
-                        ${status.label}
-                    </span>
-                </td>
-
-                <td>
-                    <button
-                        class="action-button"
-                        onclick="showReminder(${invoice.id})"
-                    >
-                        Follow up
-                    </button>
-                </td>
-            `;
-
-
-            invoiceTableBody.appendChild(row);
-        }
-    );
-
+        invoicesBody.appendChild(row);
+    });
 
     updateDashboard();
 }
 
 
-// ========================================
+// ================================
 // Dashboard
-// ========================================
+// ================================
 
 function updateDashboard() {
 
-    totalInvoices.textContent =
-        invoices.length;
-
-
     let overdueCount = 0;
+    let overdueAmount = 0;
 
-    let overdueTotal = 0;
+    invoices.forEach(invoice => {
 
+        const status = getInvoiceStatus(invoice.dueDate);
 
-    invoices.forEach(
-        function (invoice) {
+        if (status.type === "overdue") {
 
-            const status =
-                getInvoiceStatus(
-                    invoice.dueDate
-                );
+            overdueCount++;
 
-
-            if (status.daysLate > 0) {
-
-                overdueCount++;
-
-                overdueTotal +=
-                    invoice.amount;
-            }
+            overdueAmount += Number(invoice.amount);
         }
-    );
+    });
 
+    totalInvoicesEl.textContent = invoices.length;
 
-    overdueInvoices.textContent =
-        overdueCount;
+    overdueInvoicesEl.textContent = overdueCount;
 
-
-    overdueAmount.textContent =
-        `$${overdueTotal.toFixed(2)}`;
+    overdueAmountEl.textContent =
+        "$" + overdueAmount.toFixed(2);
 }
 
 
-// ========================================
-// Show reminder
-// ========================================
+// ================================
+// Add invoice
+// ================================
 
-function showReminder(id) {
+form.addEventListener("submit", function(event) {
 
-    const invoice =
-        invoices.find(
-            function (item) {
+    event.preventDefault();
 
-                return item.id === id;
-            }
-        );
+    const customer = customerInput.value.trim();
+    const invoiceNumber = invoiceInput.value.trim();
+    const amount = parseFloat(amountInput.value);
+    const dueDate = dueDateInput.value;
 
+    if (!customer || !invoiceNumber || !amount || !dueDate) {
 
-    if (!invoice) {
+        alert("Please fill in all fields.");
+
         return;
     }
 
+    const invoice = {
 
-    const status =
-        getInvoiceStatus(
-            invoice.dueDate
-        );
+        customer: customer,
+
+        invoiceNumber: invoiceNumber,
+
+        amount: amount,
+
+        dueDate: dueDate,
+
+        createdAt: new Date().toISOString()
+    };
+
+    invoices.push(invoice);
+
+    saveInvoices();
+
+    renderInvoices();
+
+    form.reset();
+
+    reminderSection.style.display = "none";
+});
 
 
-    const customer =
+// ================================
+// Delete invoice
+// ================================
+
+function deleteInvoice(index) {
+
+    const invoice = invoices[index];
+
+    const confirmed = confirm(
+        `Delete invoice ${invoice.invoiceNumber}?`
+    );
+
+    if (!confirmed) {
+        return;
+    }
+
+    invoices.splice(index, 1);
+
+    saveInvoices();
+
+    renderInvoices();
+
+    reminderSection.style.display = "none";
+}
+
+
+// ================================
+// Generate reminder
+// ================================
+
+function showReminder(index) {
+
+    const invoice = invoices[index];
+
+    const status = getInvoiceStatus(invoice.dueDate);
+
+    reminderCustomer.textContent =
         invoice.customer;
 
-    const invoiceNumber =
-        invoice.invoiceNumber;
+    let subject = "";
+    let message = "";
 
-    const amount =
-        invoice.amount;
-
-    const dueDate =
-        formatDate(
-            invoice.dueDate
-        );
-
-    const daysLate =
-        status.daysLate;
-
-
-    let subject;
-
-    let message;
-
-
-    // -----------------------------
-    // Not overdue
-    // -----------------------------
-
-    if (daysLate === 0) {
+    if (status.daysLate <= 0) {
 
         subject =
-            `Friendly reminder - Invoice ${invoiceNumber}`;
-
+            `Payment reminder - Invoice ${invoice.invoiceNumber}`;
 
         message =
-`Hi ${customer},
+`Hi ${invoice.customer},
 
-I hope you're doing well.
-
-This is a friendly reminder that invoice ${invoiceNumber} for $${amount.toFixed(2)} is due on ${dueDate}.
+Just a friendly reminder that invoice ${invoice.invoiceNumber} for $${Number(invoice.amount).toFixed(2)} is due today.
 
 Please let me know if you have any questions.
 
-Thank you!`;
-    }
+Thank you.`;
 
-
-    // -----------------------------
-    // 1-7 days overdue
-    // -----------------------------
-
-    else if (daysLate <= 7) {
+    } else if (status.daysLate <= 7) {
 
         subject =
-            `Payment reminder - Invoice ${invoiceNumber}`;
-
+            `Payment reminder - Invoice ${invoice.invoiceNumber}`;
 
         message =
-`Hi ${customer},
+`Hi ${invoice.customer},
 
-I wanted to follow up regarding invoice ${invoiceNumber} for $${amount.toFixed(2)}.
+I wanted to follow up regarding invoice ${invoice.invoiceNumber} for $${Number(invoice.amount).toFixed(2)}, which is now ${status.daysLate} day${status.daysLate === 1 ? "" : "s"} overdue.
 
-The invoice was due on ${dueDate} and appears to still be outstanding.
+Could you please let me know when we can expect payment?
 
-Could you please let me know when payment is expected?
+Thank you.`;
 
-Thank you!`;
-    }
-
-
-    // -----------------------------
-    // 8-30 days overdue
-    // -----------------------------
-
-    else if (daysLate <= 30) {
+    } else {
 
         subject =
-            `Payment overdue - Invoice ${invoiceNumber}`;
-
-
-        message =
-`Hi ${customer},
-
-I'm following up regarding invoice ${invoiceNumber} for $${amount.toFixed(2)}.
-
-The invoice was due on ${dueDate} and is now ${daysLate} days overdue.
-
-Please let me know the status of the payment or if there is anything you need from me.
-
-Thank you for your attention to this.`;
-    }
-
-
-    // -----------------------------
-    // 30+ days
-    // -----------------------------
-
-    else {
-
-        subject =
-            `Urgent payment follow-up - Invoice ${invoiceNumber}`;
-
+            `Overdue invoice - ${invoice.invoiceNumber}`;
 
         message =
-`Hi ${customer},
+`Hi ${invoice.customer},
 
-I'm following up again regarding invoice ${invoiceNumber} for $${amount.toFixed(2)}.
+I'm following up regarding invoice ${invoice.invoiceNumber} for $${Number(invoice.amount).toFixed(2)}.
 
-The invoice was due on ${dueDate} and is now ${daysLate} days overdue.
+The invoice is now ${status.daysLate} days overdue.
 
-Please let me know when payment can be expected.
-
-If there is an issue with the invoice, please let me know so we can resolve it.
+Could you please arrange payment at your earliest convenience, or let me know if there is any issue with the invoice?
 
 Thank you.`;
     }
 
+    reminderSubject.value = subject;
 
-    reminderSubject.value =
-        subject;
+    reminderMessage.value = message;
 
-    reminderMessage.value =
-        message;
-
-
-    reminderSection.classList.remove(
-        "hidden"
-    );
-
-
-    copyStatus.textContent = "";
-
+    reminderSection.style.display = "block";
 
     reminderSection.scrollIntoView({
         behavior: "smooth"
@@ -541,92 +324,59 @@ Thank you.`;
 }
 
 
-// ========================================
+// ================================
 // Copy reminder
-// ========================================
+// ================================
 
-copyButton.addEventListener(
-    "click",
-    async function () {
+copyReminderBtn.addEventListener("click", async function() {
 
-        const subject =
-            reminderSubject.value;
+    const subject = reminderSubject.value;
 
-        const message =
-            reminderMessage.value;
+    const message = reminderMessage.value;
 
+    const text =
+`Subject: ${subject}
 
-        const text =
-            `${subject}\n\n${message}`;
+${message}`;
 
+    try {
 
-        try {
+        await navigator.clipboard.writeText(text);
 
-            await navigator.clipboard.writeText(
-                text
-            );
+        copyReminderBtn.textContent = "Copied!";
 
-            copyStatus.textContent =
-                "✓ Message copied. You can now paste it into your email or messaging app.";
+        setTimeout(() => {
 
-        } catch (error) {
+            copyReminderBtn.textContent =
+                "Copy Reminder";
 
-            reminderMessage.select();
+        }, 1500);
 
-            document.execCommand(
-                "copy"
-            );
+    } catch (error) {
 
-            copyStatus.textContent =
-                "✓ Message copied.";
-        }
+        alert(
+            "Copy failed. Please select and copy the message manually."
+        );
     }
-);
+});
 
 
-// ========================================
-// Format date
-// ========================================
+// ================================
+// Escape HTML
+// ================================
 
-function formatDate(dateString) {
+function escapeHTML(text) {
 
-    const date =
-        new Date(dateString);
+    const div = document.createElement("div");
 
+    div.textContent = text;
 
-    return date.toLocaleDateString(
-        "en-US",
-        {
-            year: "numeric",
-            month: "short",
-            day: "numeric"
-        }
-    );
+    return div.innerHTML;
 }
 
 
-// ========================================
-// Security helper
-// ========================================
-
-function escapeHTML(value) {
-
-    return String(value)
-
-        .replaceAll("&", "&amp;")
-
-        .replaceAll("<", "&lt;")
-
-        .replaceAll(">", "&gt;")
-
-        .replaceAll('"', "&quot;")
-
-        .replaceAll("'", "&#039;");
-}
-
-
-// ========================================
-// Initial render
-// ========================================
+// ================================
+// Initial load
+// ================================
 
 renderInvoices();
