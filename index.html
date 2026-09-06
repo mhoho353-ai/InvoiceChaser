@@ -1,8 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
     <title>InvoiceChaser - Track Unpaid Invoices</title>
 
@@ -11,291 +17,487 @@
         content="Track overdue invoices and generate professional payment reminders in seconds."
     >
 
-    <link rel="stylesheet" href="style.css">
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
+
+    <style>
+
+        /* Invoice filters */
+
+        .invoice-filters {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+
+        .filter-button {
+            border: 1px solid #ddd;
+            background: white;
+            padding: 9px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .filter-button:hover {
+            opacity: 0.85;
+        }
+
+        .filter-button.active {
+            background: #111;
+            color: white;
+            border-color: #111;
+        }
+
+        .small-btn {
+            border: none;
+            padding: 7px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 2px;
+        }
+
+        .reminder-btn {
+            background: #111;
+            color: white;
+        }
+
+        .delete-btn {
+            background: #eee;
+            color: #333;
+        }
+
+        .empty-state {
+            text-align: center;
+        }
+
+    </style>
+
 </head>
+
 
 <body>
 
-    <header class="header">
-        <div class="logo">
-            💰 InvoiceChaser
+
+<header class="header">
+
+    <div class="logo">
+        💰 InvoiceChaser
+    </div>
+
+    <div class="header-note">
+        Simple invoice follow-up
+    </div>
+
+</header>
+
+
+<main class="container">
+
+
+    <!-- HERO -->
+
+    <section class="hero">
+
+        <div class="badge">
+            SIMPLE • FAST • PRIVATE
         </div>
 
-        <div class="header-note">
-            Simple invoice follow-up
+        <h1>
+            Stop forgetting<br>
+            unpaid invoices.
+        </h1>
+
+        <p>
+            Track overdue invoices, see who needs a follow-up,
+            and generate a professional reminder in seconds.
+        </p>
+
+    </section>
+
+
+
+    <!-- DASHBOARD -->
+
+    <section class="dashboard">
+
+        <div class="stat-card">
+
+            <span class="stat-label">
+                Total invoices
+            </span>
+
+            <strong id="totalInvoices">
+                0
+            </strong>
+
         </div>
-    </header>
 
 
-    <main class="container">
+        <div class="stat-card">
 
-        <!-- HERO -->
+            <span class="stat-label">
+                Overdue
+            </span>
 
-        <section class="hero">
+            <strong id="overdueInvoices">
+                0
+            </strong>
 
-            <div class="badge">
-                SIMPLE • FAST • PRIVATE
-            </div>
+        </div>
 
-            <h1>
-                Stop forgetting<br>
-                unpaid invoices.
-            </h1>
+
+        <div class="stat-card">
+
+            <span class="stat-label">
+                Money overdue
+            </span>
+
+            <strong id="overdueAmount">
+                $0.00
+            </strong>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- ADD INVOICE -->
+
+    <section class="card">
+
+        <div class="section-title">
+
+            <h2>
+                ➕ Add an invoice
+            </h2>
 
             <p>
-                Track overdue invoices, see who needs a follow-up,
-                and generate a professional reminder in seconds.
+                Add the basic details of an invoice.
             </p>
 
-        </section>
+        </div>
 
 
-        <!-- DASHBOARD -->
+        <form id="invoiceForm">
 
-        <section class="dashboard">
-
-            <div class="stat-card">
-                <span class="stat-label">Total invoices</span>
-                <strong id="totalInvoices">0</strong>
-            </div>
-
-            <div class="stat-card">
-                <span class="stat-label">Overdue</span>
-                <strong id="overdueInvoices">0</strong>
-            </div>
-
-            <div class="stat-card">
-                <span class="stat-label">Money overdue</span>
-                <strong id="overdueAmount">$0.00</strong>
-            </div>
-
-        </section>
+            <div class="form-grid">
 
 
-        <!-- ADD INVOICE -->
+                <div class="form-group">
 
-        <section class="card">
+                    <label for="customer">
+                        Customer name
+                    </label>
 
-            <div class="section-title">
-                <h2>➕ Add an invoice</h2>
-
-                <p>
-                    Add the basic details of an invoice.
-                </p>
-            </div>
-
-
-            <form id="invoiceForm">
-
-                <div class="form-grid">
-
-                    <div class="form-group">
-                        <label for="customer">
-                            Customer name
-                        </label>
-
-                        <input
-                            id="customer"
-                            type="text"
-                            placeholder="John Smith"
-                            required
-                        >
-                    </div>
-
-
-                    <div class="form-group">
-                        <label for="invoiceNumber">
-                            Invoice number
-                        </label>
-
-                        <input
-                            id="invoiceNumber"
-                            type="text"
-                            placeholder="INV-1024"
-                            required
-                        >
-                    </div>
-
-
-                    <div class="form-group">
-                        <label for="amount">
-                            Amount ($)
-                        </label>
-
-                        <input
-                            id="amount"
-                            type="number"
-                            min="0.01"
-                            step="0.01"
-                            placeholder="850.00"
-                            required
-                        >
-                    </div>
-
-
-                    <div class="form-group">
-                        <label for="dueDate">
-                            Due date
-                        </label>
-
-                        <input
-                            id="dueDate"
-                            type="date"
-                            required
-                        >
-                    </div>
+                    <input
+                        id="customer"
+                        type="text"
+                        placeholder="John Smith"
+                        required
+                    >
 
                 </div>
 
 
-                <button
-                    class="primary-button"
-                    type="submit"
-                >
-                    Add Invoice
-                </button>
 
-            </form>
+                <div class="form-group">
 
-        </section>
+                    <label for="invoiceNumber">
+                        Invoice number
+                    </label>
 
+                    <input
+                        id="invoiceNumber"
+                        type="text"
+                        placeholder="INV-1024"
+                        required
+                    >
 
-        <!-- INVOICES -->
-
-        <section class="card">
-
-            <div class="section-title">
-                <h2>📊 Your invoices</h2>
-
-                <p>
-                    See which invoices need your attention.
-                </p>
-            </div>
-
-
-            <div id="emptyState" class="empty-state">
-
-                <div class="empty-icon">
-                    📄
                 </div>
 
-                <h3>No invoices yet</h3>
 
-                <p>
-                    Add your first invoice above.
-                </p>
+
+                <div class="form-group">
+
+                    <label for="amount">
+                        Amount ($)
+                    </label>
+
+                    <input
+                        id="amount"
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        placeholder="850.00"
+                        required
+                    >
+
+                </div>
+
+
+
+                <div class="form-group">
+
+                    <label for="dueDate">
+                        Due date
+                    </label>
+
+                    <input
+                        id="dueDate"
+                        type="date"
+                        required
+                    >
+
+                </div>
+
 
             </div>
+
+
+            <button
+                class="primary-button"
+                type="submit"
+            >
+                Add Invoice
+            </button>
+
+        </form>
+
+    </section>
+
+
+
+    <!-- INVOICES -->
+
+    <section class="card">
+
+
+        <div class="section-title">
+
+            <h2>
+                📊 Your invoices
+            </h2>
+
+            <p>
+                See which invoices need your attention.
+            </p>
+
+        </div>
+
+
+
+        <!-- FILTERS -->
+
+        <div class="invoice-filters">
+
+            <button
+                type="button"
+                class="filter-button active"
+                data-filter="all"
+            >
+                All
+            </button>
+
+
+            <button
+                type="button"
+                class="filter-button"
+                data-filter="overdue"
+            >
+                Overdue
+            </button>
+
+
+            <button
+                type="button"
+                class="filter-button"
+                data-filter="soon"
+            >
+                Due Soon
+            </button>
+
+        </div>
+
+
+
+        <!-- EMPTY STATE -->
+
+        <div
+            id="emptyState"
+            class="empty-state"
+        >
+
+            <div class="empty-icon">
+                📄
+            </div>
+
+            <h3>
+                No invoices yet
+            </h3>
+
+            <p>
+                Add your first invoice above.
+            </p>
+
+        </div>
+
+
+
+        <!-- TABLE -->
+
+        <div
+            id="invoiceTableContainer"
+            class="table-container hidden"
+        >
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Customer
+                        </th>
+
+                        <th>
+                            Invoice
+                        </th>
+
+                        <th>
+                            Amount
+                        </th>
+
+                        <th>
+                            Due
+                        </th>
+
+                        <th>
+                            Status
+                        </th>
+
+                        <th>
+                            Action
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="invoiceTableBody">
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+    </section>
+
+
+
+    <!-- REMINDER -->
+
+    <section
+        id="reminderSection"
+        class="card hidden"
+    >
+
+        <div class="section-title">
+
+            <h2>
+                ✉️ Payment reminder
+            </h2>
+
+            <p>
+                Copy the message and send it through your usual
+                email or messaging app.
+            </p>
+
+        </div>
+
+
+
+        <div class="reminder-box">
+
+
+            <label>
+                Email subject
+            </label>
+
+
+            <input
+                id="reminderSubject"
+                type="text"
+                readonly
+            >
+
+
+
+            <label>
+                Message
+            </label>
+
+
+            <textarea
+                id="reminderMessage"
+                rows="12"
+                readonly
+            ></textarea>
+
+
+
+            <button
+                id="copyButton"
+                class="secondary-button"
+                type="button"
+            >
+                📋 Copy Message
+            </button>
+
 
 
             <div
-                id="invoiceTableContainer"
-                class="table-container hidden"
-            >
-
-                <table>
-
-                    <thead>
-
-                        <tr>
-                            <th>Customer</th>
-                            <th>Invoice</th>
-                            <th>Amount</th>
-                            <th>Due</th>
-                            <th>Status</th>
-                            <th>Action</th>
-                        </tr>
-
-                    </thead>
-
-                    <tbody id="invoiceTableBody">
-                    </tbody>
-
-                </table>
-
-            </div>
-
-        </section>
+                id="copyStatus"
+                class="copy-status"
+            ></div>
 
 
-        <!-- REMINDER -->
+        </div>
 
-        <section
-            id="reminderSection"
-            class="card hidden"
-        >
-
-            <div class="section-title">
-
-                <h2>✉️ Payment reminder</h2>
-
-                <p>
-                    Copy the message and send it through your usual email
-                    or messaging app.
-                </p>
-
-            </div>
+    </section>
 
 
-            <div class="reminder-box">
 
-                <label>
-                    Email subject
-                </label>
+    <!-- FOOTER -->
 
-                <input
-                    id="reminderSubject"
-                    type="text"
-                    readonly
-                >
+    <footer>
 
+        <p>
+            InvoiceChaser
+        </p>
 
-                <label>
-                    Message
-                </label>
+        <small>
+            Your invoice information stays in your browser.
+        </small>
 
-                <textarea
-                    id="reminderMessage"
-                    rows="12"
-                    readonly
-                ></textarea>
+    </footer>
 
 
-                <button
-                    id="copyButton"
-                    class="secondary-button"
-                >
-                    📋 Copy Message
-                </button>
-
-                <div
-                    id="copyStatus"
-                    class="copy-status"
-                ></div>
-
-            </div>
-
-        </section>
+</main>
 
 
-        <!-- FOOTER -->
 
-        <footer>
+<script src="script.js"></script>
 
-            <p>
-                InvoiceChaser
-            </p>
-
-            <small>
-                Your invoice information stays in your browser.
-            </small>
-
-        </footer>
-
-    </main>
-
-
-    <script src="script.js"></script>
 
 </body>
+
 </html>
